@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QuantumServe — Staff Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- Ambient background -->
+  <div class="ambient">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
+    <canvas id="grainCanvas"></canvas>
+  </div>
+
+  <!-- Auth container -->
+  <div class="auth-wrap">
+
+    <!-- Left: Branding panel -->
+    <div class="brand-panel">
+      <div class="brand-panel-inner">
+        <div class="brand-logo">
+          <div class="brand-icon">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="7" fill="url(#g1)"/>
+              <path d="M7 10h14M7 14h9M7 18h11" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <defs><linearGradient id="g1" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#8a6e30"/><stop offset="1" stop-color="#c9a84c"/></linearGradient></defs>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-name">Quantum<span>Serve</span></div>
+            <div class="brand-edition">Hospitality ERP · Enterprise</div>
+          </div>
+        </div>
+
+        <div class="brand-copy">
+          <h1 class="brand-headline">Your hotel,<br><em>fully digital.</em></h1>
+          <p class="brand-sub">Every department. Every shift.<br>Every transaction. One system.</p>
+        </div>
+
+        <div class="brand-modules">
+          <div class="module-pill" style="--d:0ms">🛏️ Rooms & Front Desk</div>
+          <div class="module-pill" style="--d:60ms">💳 Point of Sale</div>
+          <div class="module-pill" style="--d:120ms">🍺 Bar Counter</div>
+          <div class="module-pill" style="--d:180ms">👨‍🍳 Kitchen Display</div>
+          <div class="module-pill" style="--d:240ms">🧹 Housekeeping</div>
+          <div class="module-pill" style="--d:300ms">📦 Inventory</div>
+          <div class="module-pill" style="--d:360ms">💰 Finance & Payroll</div>
+          <div class="module-pill" style="--d:420ms">📊 Executive BI</div>
+        </div>
+
+        <div class="brand-footer">
+          <span>Powered by</span>
+          <strong>Quantum Solutions</strong>
+          <span class="dot">·</span>
+          <span id="brandClock"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Login panel -->
+    <div class="login-panel">
+      <div class="login-card" id="loginCard">
+
+        <!-- Step 1: Email -->
+        <div class="login-step" id="stepEmail">
+          <div class="step-header">
+            <div class="step-num">01</div>
+            <div>
+              <h2 class="step-title">Welcome back</h2>
+              <p class="step-hint">Enter your staff email to continue</p>
+            </div>
+          </div>
+
+          <div class="field-wrap">
+            <label class="field-label">Staff Email</label>
+            <div class="field-input-wrap">
+              <span class="field-icon">✉</span>
+              <input type="email" id="emailInput" class="field-input"
+                     placeholder="yourname@hotel.com"
+                     autocomplete="email"
+                     oninput="validateEmail()"
+                     onkeydown="if(event.key==='Enter')nextStep()">
+              <div class="field-check" id="emailCheck"></div>
+            </div>
+            <div class="field-error" id="emailError"></div>
+          </div>
+
+          <button class="btn-primary" id="btnEmail" onclick="nextStep()" disabled>
+            <span>Continue</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <div class="login-divider"><span>or sign in with</span></div>
+
+          <div class="demo-accounts">
+            <div class="demo-label">Demo accounts</div>
+            <div class="demo-grid" id="demoGrid"></div>
+          </div>
+        </div>
+
+        <!-- Step 2: PIN -->
+        <div class="login-step hidden" id="stepPin">
+          <button class="back-btn" onclick="goBack()">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M7 4L3 8l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Back
+          </button>
+
+          <div class="staff-card" id="staffCard">
+            <div class="staff-avatar" id="staffAvatar"></div>
+            <div class="staff-info">
+              <div class="staff-name" id="staffName"></div>
+              <div class="staff-role" id="staffRole"></div>
+              <div class="staff-dept" id="staffDept"></div>
+            </div>
+          </div>
+
+          <div class="step-header" style="margin-top:20px">
+            <div class="step-num">02</div>
+            <div>
+              <h2 class="step-title">Enter your PIN</h2>
+              <p class="step-hint">4–6 digit security PIN</p>
+            </div>
+          </div>
+
+          <!-- PIN dots display -->
+          <div class="pin-display" id="pinDisplay">
+            <div class="pin-dot" id="pd0"></div>
+            <div class="pin-dot" id="pd1"></div>
+            <div class="pin-dot" id="pd2"></div>
+            <div class="pin-dot" id="pd3"></div>
+            <div class="pin-dot" id="pd4"></div>
+            <div class="pin-dot" id="pd5"></div>
+          </div>
+          <div class="field-error" id="pinError"></div>
+
+          <!-- Numpad -->
+          <div class="numpad" id="numpad">
+            <button class="num-key" onclick="pinInput('1')">1</button>
+            <button class="num-key" onclick="pinInput('2')">2<span>ABC</span></button>
+            <button class="num-key" onclick="pinInput('3')">3<span>DEF</span></button>
+            <button class="num-key" onclick="pinInput('4')">4<span>GHI</span></button>
+            <button class="num-key" onclick="pinInput('5')">5<span>JKL</span></button>
+            <button class="num-key" onclick="pinInput('6')">6<span>MNO</span></button>
+            <button class="num-key" onclick="pinInput('7')">7<span>PQRS</span></button>
+            <button class="num-key" onclick="pinInput('8')">8<span>TUV</span></button>
+            <button class="num-key" onclick="pinInput('9')">9<span>WXYZ</span></button>
+            <button class="num-key num-action" onclick="pinClear()">C</button>
+            <button class="num-key" onclick="pinInput('0')">0</button>
+            <button class="num-key num-action" onclick="pinBackspace()">⌫</button>
+          </div>
+
+          <button class="btn-primary" id="btnPin" onclick="attemptLogin()" disabled>
+            <span>Sign In</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <div class="attempts-warn" id="attemptsWarn" style="display:none">
+            <span id="attemptsMsg"></span>
+          </div>
+        </div>
+
+        <!-- Step 3: Routing (shown briefly) -->
+        <div class="login-step hidden" id="stepRouting">
+          <div class="routing-display">
+            <div class="routing-spinner"></div>
+            <div class="routing-role" id="routingRole"></div>
+            <div class="routing-msg" id="routingMsg">Authenticating…</div>
+            <div class="routing-dest" id="routingDest"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Trial banner -->
+      <div id="trialBanner" style="display:none;text-align:center;padding:6px 16px;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.25);border-radius:8px;font-size:11px;color:var(--gold);margin-bottom:12px;font-family:var(--font-mono)"></div>
+
+      <!-- Property & version info -->
+      <div class="login-footer-info">
+        <div class="property-badge" id="propertyBadge">
+          <span class="property-dot"></span>
+          <span id="propertyName">Lakeview Heights Hotel</span>
+        </div>
+        <div class="version-badge">v3.2.0</div>
+      </div>
+    </div>
+
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="index.js"></script>
+</body>
+</html>
