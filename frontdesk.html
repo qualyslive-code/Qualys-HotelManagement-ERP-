@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QuantumServe — Front Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="frontdesk.css">
+</head>
+<body>
+
+<!-- COMMAND BAR -->
+<div class="cmd-bar">
+  <div class="cmd-left">
+    <div class="brand-mark">
+      <div class="brand-ico">🏨</div>
+      <div>
+        <div class="brand-name">Quantum<span>Serve</span></div>
+        <div class="brand-role">Front Desk</div>
+      </div>
+    </div>
+    <div class="cmd-sep"></div>
+    <div class="property-tag" id="cmdProperty">Lakeview Heights Hotel</div>
+    <div class="cmd-sep"></div>
+    <div class="occ-pill">
+      <span class="occ-dot"></span>
+      <span id="cmdOcc">—</span>
+      <span class="occ-label">occupancy</span>
+    </div>
+  </div>
+  <div class="cmd-center">
+    <!-- Global search -->
+    <div class="global-search">
+      <span class="gs-ico">⌕</span>
+      <input type="text" id="globalSearch" placeholder="Search guest, room, reservation…"
+             oninput="FD.search.query(this.value)" autocomplete="off">
+      <kbd class="gs-kbd">⌘K</kbd>
+    </div>
+  </div>
+  <div class="cmd-right">
+    <div class="cmd-clock" id="cmdClock"></div>
+    <div class="cmd-date" id="cmdDate"></div>
+    <div class="notif-btn" id="notifBtn" onclick="FD.ui.openNotifications()">
+      <span>🔔</span>
+      <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+    </div>
+    <div class="staff-chip" id="staffChip">
+      <div class="staff-avatar" id="staffAvatar">—</div>
+      <div class="staff-info">
+        <div class="staff-name" id="staffNameEl">—</div>
+        <div class="staff-role-lbl">Front Desk</div>
+      </div>
+    </div>
+    <button class="cmd-btn logout-btn" onclick="FD.auth.logout()">Sign Out</button>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div class="workspace">
+
+  <!-- LEFT: SIDEBAR NAV -->
+  <nav class="fd-nav">
+    <div class="nav-section-lbl">Operations</div>
+    <div class="nav-item active" data-view="dashboard" onclick="FD.nav.go('dashboard')">
+      <span class="nav-ico">⬡</span><span>Overview</span>
+    </div>
+    <div class="nav-item" data-view="arrivals" onclick="FD.nav.go('arrivals')">
+      <span class="nav-ico">⬇</span><span>Arrivals</span>
+      <span class="nav-badge" id="navArrivalsBadge">0</span>
+    </div>
+    <div class="nav-item" data-view="departures" onclick="FD.nav.go('departures')">
+      <span class="nav-ico">⬆</span><span>Departures</span>
+      <span class="nav-badge" id="navDepartureBadge">0</span>
+    </div>
+    <div class="nav-item" data-view="inhouse" onclick="FD.nav.go('inhouse')">
+      <span class="nav-ico">👥</span><span>In House</span>
+      <span class="nav-badge amber" id="navInhouseBadge">0</span>
+    </div>
+
+    <div class="nav-section-lbl">Reservations</div>
+    <div class="nav-item" data-view="reservations" onclick="FD.nav.go('reservations')">
+      <span class="nav-ico">📅</span><span>All Reservations</span>
+    </div>
+    <div class="nav-item" data-view="walkin" onclick="FD.nav.go('walkin')">
+      <span class="nav-ico">🚶</span><span>Walk-in</span>
+    </div>
+
+    <div class="nav-section-lbl">Property</div>
+    <div class="nav-item" data-view="rooms" onclick="FD.nav.go('rooms')">
+      <span class="nav-ico">🛏</span><span>Room Map</span>
+    </div>
+    <div class="nav-item" data-view="guests" onclick="FD.nav.go('guests')">
+      <span class="nav-ico">🪪</span><span>Guest Profiles</span>
+    </div>
+    <div class="nav-item" data-view="conference" onclick="FD.nav.go('conference')">
+      <span class="nav-ico">🏛</span><span>Conference</span>
+    </div>
+    <div class="nav-item" data-view="dining" onclick="FD.nav.go('dining')">
+      <span class="nav-ico">🍽</span><span>Dining Tables</span>
+    </div>
+    <div class="nav-item" data-view="maintenance" onclick="FD.nav.go('maintenance')">
+      <span class="nav-ico">🔧</span><span>Maintenance</span>
+      <span class="nav-badge red" id="navMaintBadge">0</span>
+    </div>
+
+    <div class="nav-section-lbl">Finance</div>
+    <div class="nav-item" data-view="folios" onclick="FD.nav.go('folios')">
+      <span class="nav-ico">📋</span><span>Guest Folios</span>
+    </div>
+
+    <div class="nav-shift-close">
+      <button class="nav-shift-btn" onclick="FD.shift.end()">⏏ End Shift</button>
+    </div>
+  </nav>
+
+  <!-- RIGHT: CONTENT -->
+  <main class="fd-content" id="fdContent">
+
+    <!-- ══ DASHBOARD ══════════════════════════════════════════ -->
+    <div class="view active" id="view-dashboard">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">Overview</h1>
+          <p class="view-sub" id="dashDate">Today</p>
+        </div>
+        <div class="view-actions">
+          <button class="vbtn vbtn-ghost" onclick="FD.data.load()">↻ Refresh</button>
+          <button class="vbtn vbtn-primary" onclick="FD.nav.go('walkin')">+ Walk-in</button>
+        </div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="kpi-strip" id="kpiStrip"></div>
+
+      <!-- Quadrant grid -->
+      <div class="dash-grid">
+        <!-- Arrivals today -->
+        <div class="dash-card">
+          <div class="dc-head">
+            <div class="dc-title">⬇ Arriving Today</div>
+            <button class="dc-link" onclick="FD.nav.go('arrivals')">View all →</button>
+          </div>
+          <div class="dc-body" id="dashArrivals"></div>
+        </div>
+
+        <!-- Departures today -->
+        <div class="dash-card">
+          <div class="dc-head">
+            <div class="dc-title">⬆ Departing Today</div>
+            <button class="dc-link" onclick="FD.nav.go('departures')">View all →</button>
+          </div>
+          <div class="dc-body" id="dashDepartures"></div>
+        </div>
+
+        <!-- Room status heatmap -->
+        <div class="dash-card dash-card-wide">
+          <div class="dc-head">
+            <div class="dc-title">🛏 Room Status</div>
+            <div class="room-legend">
+              <span class="rl rl-clean">Clean</span>
+              <span class="rl rl-occupied">Occupied</span>
+              <span class="rl rl-dirty">Dirty</span>
+              <span class="rl rl-maint">Maintenance</span>
+              <span class="rl rl-reserved">Reserved</span>
+            </div>
+          </div>
+          <div class="room-heatmap" id="dashRoomHeatmap"></div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="dash-card">
+          <div class="dc-head"><div class="dc-title">⚡ Alerts</div></div>
+          <div class="dc-body" id="dashAlerts"></div>
+        </div>
+
+        <!-- Conference today -->
+        <div class="dash-card">
+          <div class="dc-head">
+            <div class="dc-title">🏛 Conference Today</div>
+            <button class="dc-link" onclick="FD.nav.go('conference')">Manage →</button>
+          </div>
+          <div class="dc-body" id="dashConference"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ARRIVALS ═══════════════════════════════════════════ -->
+    <div class="view" id="view-arrivals">
+      <div class="view-header">
+        <div><h1 class="view-title">Arrivals</h1><p class="view-sub" id="arrivalsSub">Today's expected check-ins</p></div>
+        <div class="view-actions">
+          <select class="vselect" id="arrivalsFilter" onchange="FD.arrivals.render()">
+            <option value="all">All Status</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="checkin_pending">Checking In</option>
+          </select>
+        </div>
+      </div>
+      <div class="arrivals-list" id="arrivalsList"></div>
+    </div>
+
+    <!-- ══ DEPARTURES ══════════════════════════════════════════ -->
+    <div class="view" id="view-departures">
+      <div class="view-header">
+        <div><h1 class="view-title">Departures</h1><p class="view-sub">Today's expected check-outs</p></div>
+        <div class="view-actions">
+          <select class="vselect" id="departuresFilter" onchange="FD.departures.render()">
+            <option value="all">All Status</option>
+            <option value="checked_in">In House</option>
+            <option value="checkout_pending">Checkout Pending</option>
+          </select>
+        </div>
+      </div>
+      <div class="departures-list" id="departuresList"></div>
+    </div>
+
+    <!-- ══ IN HOUSE ════════════════════════════════════════════ -->
+    <div class="view" id="view-inhouse">
+      <div class="view-header">
+        <div><h1 class="view-title">In House</h1><p class="view-sub" id="inhouseSub">Currently occupied</p></div>
+      </div>
+      <div class="inhouse-list" id="inhouseList"></div>
+    </div>
+
+    <!-- ══ ALL RESERVATIONS ════════════════════════════════════ -->
+    <div class="view" id="view-reservations">
+      <div class="view-header">
+        <div><h1 class="view-title">Reservations</h1><p class="view-sub">All bookings</p></div>
+        <div class="view-actions">
+          <select class="vselect" id="resStatusFilter" onchange="FD.reservations.render()">
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="checked_in">In House</option>
+            <option value="checked_out">Checked Out</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button class="vbtn vbtn-primary" onclick="FD.modals.openNewReservation()">+ New Reservation</button>
+        </div>
+      </div>
+      <div class="res-list" id="resList"></div>
+    </div>
+
+    <!-- ══ WALK-IN ═════════════════════════════════════════════ -->
+    <div class="view" id="view-walkin">
+      <div class="view-header">
+        <div><h1 class="view-title">Walk-in Check-in</h1><p class="view-sub">Instant room assignment for arriving guests</p></div>
+      </div>
+      <div class="walkin-layout">
+        <div class="walkin-left">
+          <!-- Step wizard -->
+          <div class="wizard-steps" id="walkinSteps">
+            <div class="wstep active" data-step="1"><span class="ws-num">1</span><span>Guest</span></div>
+            <div class="wstep" data-step="2"><span class="ws-num">2</span><span>Room</span></div>
+            <div class="wstep" data-step="3"><span class="ws-num">3</span><span>Rate</span></div>
+            <div class="wstep" data-step="4"><span class="ws-num">4</span><span>Confirm</span></div>
+          </div>
+          <div id="walkinBody"></div>
+        </div>
+        <div class="walkin-right">
+          <div class="booking-summary" id="walkinSummary">
+            <div class="bs-title">Booking Summary</div>
+            <div class="bs-empty">Complete each step to see summary</div>
+          </div>
+          <!-- Available rooms panel -->
+          <div class="avail-rooms-panel">
+            <div class="arp-title">Available Rooms</div>
+            <div class="arp-filters">
+              <select class="vselect sm" id="arpTypeFilter" onchange="FD.walkin.filterRooms()">
+                <option value="">All Types</option>
+              </select>
+              <select class="vselect sm" id="arpFloorFilter" onchange="FD.walkin.filterRooms()">
+                <option value="">All Floors</option>
+                <option value="1">Floor 1</option>
+                <option value="2">Floor 2</option>
+                <option value="3">Floor 3</option>
+                <option value="4">Floor 4</option>
+              </select>
+            </div>
+            <div class="avail-rooms-grid" id="availRoomsGrid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ROOM MAP ════════════════════════════════════════════ -->
+    <div class="view" id="view-rooms">
+      <div class="view-header">
+        <div><h1 class="view-title">Room Map</h1><p class="view-sub" id="roomMapSub">All rooms · live status</p></div>
+        <div class="view-actions">
+          <div class="filter-chips" id="roomFilterChips">
+            <button class="fchip active" data-status="all"         onclick="FD.rooms.filter(this)">All</button>
+            <button class="fchip" data-status="vacant_clean"       onclick="FD.rooms.filter(this)">Clean</button>
+            <button class="fchip" data-status="occupied"           onclick="FD.rooms.filter(this)">Occupied</button>
+            <button class="fchip" data-status="dirty"              onclick="FD.rooms.filter(this)">Dirty</button>
+            <button class="fchip" data-status="maintenance"        onclick="FD.rooms.filter(this)">Maintenance</button>
+          </div>
+        </div>
+      </div>
+      <div class="room-map-grid" id="roomMapGrid"></div>
+    </div>
+
+    <!-- ══ GUEST PROFILES ══════════════════════════════════════ -->
+    <div class="view" id="view-guests">
+      <div class="view-header">
+        <div><h1 class="view-title">Guest Profiles</h1><p class="view-sub">CRM · stay history · preferences</p></div>
+        <div class="view-actions">
+          <input class="vselect" style="width:220px" type="text" id="guestSearchInput"
+                 placeholder="Search by name, email, phone…" oninput="FD.guests.search(this.value)">
+          <button class="vbtn vbtn-primary" onclick="FD.modals.openNewGuest()">+ New Guest</button>
+        </div>
+      </div>
+      <div class="guest-list" id="guestList"></div>
+    </div>
+
+    <!-- ══ CONFERENCE ══════════════════════════════════════════ -->
+    <div class="view" id="view-conference">
+      <div class="view-header">
+        <div><h1 class="view-title">Conference</h1><p class="view-sub">Meeting rooms · event bookings</p></div>
+        <div class="view-actions">
+          <input type="date" class="vselect" id="confDatePicker" onchange="FD.conference.render()">
+          <button class="vbtn vbtn-primary" onclick="FD.modals.openNewConference()">+ New Booking</button>
+        </div>
+      </div>
+      <div class="conf-layout">
+        <div class="conf-rooms-col" id="confRoomsCol"></div>
+        <div class="conf-bookings-col">
+          <div class="conf-timeline" id="confTimeline"></div>
+          <div class="conf-bookings-list" id="confBookingsList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DINING ══════════════════════════════════════════════ -->
+    <div class="view" id="view-dining">
+      <div class="view-header">
+        <div><h1 class="view-title">Dining Tables</h1><p class="view-sub">Reserve and manage dining floor</p></div>
+        <div class="view-actions">
+          <button class="vbtn vbtn-primary" onclick="FD.modals.openTableReservation()">+ Reserve Table</button>
+        </div>
+      </div>
+      <div class="dining-areas-tabs" id="diningAreaTabs"></div>
+      <div class="dining-floor-plan" id="diningFloorPlan"></div>
+    </div>
+
+    <!-- ══ MAINTENANCE ═════════════════════════════════════════ -->
+    <div class="view" id="view-maintenance">
+      <div class="view-header">
+        <div><h1 class="view-title">Maintenance</h1><p class="view-sub">Report and track issues</p></div>
+        <div class="view-actions">
+          <select class="vselect" id="maintFilter" onchange="FD.maintenance.render()">
+            <option value="all">All</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+          </select>
+          <button class="vbtn vbtn-primary" onclick="FD.modals.openMaintenanceReport()">+ Report Issue</button>
+        </div>
+      </div>
+      <div class="maint-list" id="maintList"></div>
+    </div>
+
+    <!-- ══ GUEST FOLIOS ════════════════════════════════════════ -->
+    <div class="view" id="view-folios">
+      <div class="view-header">
+        <div><h1 class="view-title">Guest Folios</h1><p class="view-sub">Active · billing · settlement</p></div>
+        <div class="view-actions">
+          <select class="vselect" id="folioFilter" onchange="FD.folios.render()">
+            <option value="active">Active</option>
+            <option value="all">All</option>
+            <option value="settled">Settled</option>
+          </select>
+        </div>
+      </div>
+      <div class="folio-list" id="folioList"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALS — all fully functional
+═══════════════════════════════════════════════════════════ -->
+
+<!-- CHECK-IN WIZARD -->
+<div class="modal-overlay" id="checkinModal">
+  <div class="modal-box modal-xl">
+    <div class="modal-head">
+      <h2>⬇ Check-in Guest</h2>
+      <div class="modal-head-steps" id="checkinSteps"></div>
+      <button class="modal-x" onclick="FD.ui.closeModal('checkinModal')">✕</button>
+    </div>
+    <div class="modal-body" id="checkinBody"></div>
+    <div class="modal-foot" id="checkinFoot"></div>
+  </div>
+</div>
+
+<!-- CHECK-OUT WIZARD -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="modal-box modal-xl">
+    <div class="modal-head">
+      <h2>⬆ Check-out Guest</h2>
+      <button class="modal-x" onclick="FD.ui.closeModal('checkoutModal')">✕</button>
+    </div>
+    <div class="modal-body" id="checkoutBody"></div>
+    <div class="modal-foot" id="checkoutFoot"></div>
+  </div>
+</div>
+
+<!-- NEW RESERVATION -->
+<div class="modal-overlay" id="newResModal">
+  <div class="modal-box modal-lg">
+    <div class="modal-head"><h2>📅 New Reservation</h2><button class="modal-x" onclick="FD.ui.closeModal('newResModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-col">
+          <div class="fg"><label>Guest Name *</label><input type="text" class="finput" id="nr_guestName" placeholder="Full name or search existing…" oninput="FD.guests.liveSearch(this.value,'nr_guestSuggest')"><div class="suggest-dropdown" id="nr_guestSuggest"></div></div>
+          <div class="fg"><label>Email</label><input type="email" class="finput" id="nr_email" placeholder="guest@email.com"></div>
+          <div class="fg"><label>Phone</label><input type="text" class="finput" id="nr_phone" placeholder="+256 700 000000"></div>
+          <div class="fg"><label>Nationality</label><input type="text" class="finput" id="nr_nationality" placeholder="e.g. Ugandan"></div>
+          <div class="fg"><label>ID Type</label>
+            <select class="finput" id="nr_idType">
+              <option value="passport">Passport</option>
+              <option value="national_id">National ID</option>
+              <option value="driving_licence">Driving Licence</option>
+            </select>
+          </div>
+          <div class="fg"><label>ID Number</label><input type="text" class="finput" id="nr_idNumber"></div>
+        </div>
+        <div class="form-col">
+          <div class="fg"><label>Room Type *</label>
+            <select class="finput" id="nr_roomType" onchange="FD.newRes.onRoomTypeChange()">
+              <option value="">Select…</option>
+            </select>
+          </div>
+          <div class="fg-row">
+            <div class="fg"><label>Check-in *</label><input type="date" class="finput" id="nr_checkin" onchange="FD.newRes.calcTotal()"></div>
+            <div class="fg"><label>Check-out *</label><input type="date" class="finput" id="nr_checkout" onchange="FD.newRes.calcTotal()"></div>
+          </div>
+          <div class="fg-row">
+            <div class="fg"><label>Adults</label><input type="number" class="finput" id="nr_adults" value="1" min="1" onchange="FD.newRes.calcTotal()"></div>
+            <div class="fg"><label>Children</label><input type="number" class="finput" id="nr_children" value="0" min="0"></div>
+          </div>
+          <div class="fg"><label>Rate Plan</label>
+            <select class="finput" id="nr_ratePlan" onchange="FD.newRes.calcTotal()">
+              <option value="">Select…</option>
+            </select>
+          </div>
+          <div class="fg"><label>Meal Plan</label>
+            <select class="finput" id="nr_mealPlan">
+              <option value="room_only">Room Only</option>
+              <option value="bed_breakfast">Bed & Breakfast</option>
+              <option value="half_board">Half Board</option>
+              <option value="full_board">Full Board</option>
+            </select>
+          </div>
+          <div class="fg"><label>Source</label>
+            <select class="finput" id="nr_source">
+              <option value="walk_in">Walk-in</option>
+              <option value="phone">Phone</option>
+              <option value="email">Email</option>
+              <option value="booking_com">Booking.com</option>
+              <option value="expedia">Expedia</option>
+              <option value="website">Website</option>
+              <option value="travel_agent">Travel Agent</option>
+              <option value="corporate">Corporate</option>
+            </select>
+          </div>
+          <div class="fg"><label>Special Requests</label><textarea class="finput ftextarea" id="nr_requests" rows="2" placeholder="e.g. High floor, non-smoking, anniversary…"></textarea></div>
+        </div>
+      </div>
+      <!-- Cost summary -->
+      <div class="res-cost-summary" id="resCostSummary" style="display:none"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="vbtn vbtn-ghost" onclick="FD.ui.closeModal('newResModal')">Cancel</button>
+      <button class="vbtn vbtn-secondary" onclick="FD.newRes.saveAndHold()">Save & Hold</button>
+      <button class="vbtn vbtn-primary" onclick="FD.newRes.saveAndCheckin()">Save & Check-in Now →</button>
+    </div>
+  </div>
+</div>
+
+<!-- GUEST PROFILE / EDIT -->
+<div class="modal-overlay" id="guestModal">
+  <div class="modal-box modal-lg">
+    <div class="modal-head"><h2 id="guestModalTitle">Guest Profile</h2><button class="modal-x" onclick="FD.ui.closeModal('guestModal')">✕</button></div>
+    <div class="modal-body" id="guestModalBody"></div>
+    <div class="modal-foot" id="guestModalFoot"></div>
+  </div>
+</div>
+
+<!-- FOLIO DETAIL -->
+<div class="modal-overlay" id="folioModal">
+  <div class="modal-box modal-xl">
+    <div class="modal-head">
+      <div>
+        <h2 id="folioModalTitle">Guest Folio</h2>
+        <div class="folio-ref" id="folioRef"></div>
+      </div>
+      <button class="modal-x" onclick="FD.ui.closeModal('folioModal')">✕</button>
+    </div>
+    <div class="modal-body" id="folioModalBody"></div>
+    <div class="modal-foot" id="folioModalFoot"></div>
+  </div>
+</div>
+
+<!-- POST CHARGE -->
+<div class="modal-overlay" id="chargeModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>Post Charge to Folio</h2><button class="modal-x" onclick="FD.ui.closeModal('chargeModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Charge Type</label>
+        <select class="finput" id="ch_type">
+          <option value="room_service">Room Service</option>
+          <option value="restaurant">Restaurant</option>
+          <option value="bar">Bar</option>
+          <option value="minibar">Minibar</option>
+          <option value="laundry">Laundry</option>
+          <option value="spa">Spa</option>
+          <option value="conference">Conference</option>
+          <option value="transport">Transport</option>
+          <option value="telephone">Telephone</option>
+          <option value="damage">Damage</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="fg"><label>Description *</label><input type="text" class="finput" id="ch_desc" placeholder="e.g. Minibar — Nile Special x2"></div>
+      <div class="fg-row">
+        <div class="fg"><label>Amount (UGX) *</label><input type="number" class="finput" id="ch_amount" min="0" oninput="FD.folio.previewCharge()"></div>
+        <div class="fg"><label>Quantity</label><input type="number" class="finput" id="ch_qty" value="1" min="1" oninput="FD.folio.previewCharge()"></div>
+      </div>
+      <div class="charge-preview" id="chargePreview" style="display:none"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="vbtn vbtn-ghost" onclick="FD.ui.closeModal('chargeModal')">Cancel</button>
+      <button class="vbtn vbtn-primary" onclick="FD.folio.postCharge()">Post Charge</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFERENCE BOOKING -->
+<div class="modal-overlay" id="confModal">
+  <div class="modal-box modal-lg">
+    <div class="modal-head"><h2 id="confModalTitle">🏛 Conference Booking</h2><button class="modal-x" onclick="FD.ui.closeModal('confModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-col">
+          <div class="fg"><label>Room *</label>
+            <select class="finput" id="cf_room" onchange="FD.conference.checkAvailability()">
+              <option value="">Select conference room…</option>
+            </select>
+          </div>
+          <div class="fg"><label>Guest / Company *</label><input type="text" class="finput" id="cf_guest" placeholder="Name or company"></div>
+          <div class="fg"><label>Contact Phone</label><input type="text" class="finput" id="cf_phone"></div>
+          <div class="fg"><label>Number of Attendees *</label><input type="number" class="finput" id="cf_attendees" value="10" min="1"></div>
+        </div>
+        <div class="form-col">
+          <div class="fg"><label>Date *</label><input type="date" class="finput" id="cf_date" onchange="FD.conference.checkAvailability()"></div>
+          <div class="fg-row">
+            <div class="fg"><label>Start Time *</label><input type="time" class="finput" id="cf_start" value="09:00" onchange="FD.conference.calcConfCost()"></div>
+            <div class="fg"><label>End Time *</label><input type="time" class="finput" id="cf_end" value="17:00" onchange="FD.conference.calcConfCost()"></div>
+          </div>
+          <div class="fg"><label>Setup Style</label>
+            <select class="finput" id="cf_setup">
+              <option value="boardroom">Boardroom</option>
+              <option value="theatre">Theatre</option>
+              <option value="classroom">Classroom</option>
+              <option value="u_shape">U-Shape</option>
+              <option value="banquet">Banquet</option>
+              <option value="cocktail">Cocktail</option>
+            </select>
+          </div>
+          <div class="fg-row">
+            <div class="fg" style="flex-direction:row;align-items:center;gap:8px;margin-top:4px">
+              <input type="checkbox" id="cf_catering" style="accent-color:var(--gold);width:16px;height:16px">
+              <label for="cf_catering" style="font-size:12px;color:var(--text2)">Catering Required</label>
+            </div>
+            <div class="fg" style="flex-direction:row;align-items:center;gap:8px;margin-top:4px">
+              <input type="checkbox" id="cf_av" style="accent-color:var(--gold);width:16px;height:16px">
+              <label for="cf_av" style="font-size:12px;color:var(--text2)">AV Equipment</label>
+            </div>
+          </div>
+          <div class="fg"><label>Notes</label><textarea class="finput ftextarea" id="cf_notes" rows="2"></textarea></div>
+        </div>
+      </div>
+      <div class="conf-avail-status" id="confAvailStatus"></div>
+      <div class="res-cost-summary" id="confCostSummary" style="display:none"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="vbtn vbtn-ghost" onclick="FD.ui.closeModal('confModal')">Cancel</button>
+      <button class="vbtn vbtn-primary" onclick="FD.conference.book()">Confirm Booking</button>
+    </div>
+  </div>
+</div>
+
+<!-- TABLE RESERVATION -->
+<div class="modal-overlay" id="tableResModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>🍽 Reserve Table</h2><button class="modal-x" onclick="FD.ui.closeModal('tableResModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Guest Name *</label><input type="text" class="finput" id="tr_guest"></div>
+      <div class="fg"><label>Phone</label><input type="text" class="finput" id="tr_phone"></div>
+      <div class="fg-row">
+        <div class="fg"><label>Date *</label><input type="date" class="finput" id="tr_date"></div>
+        <div class="fg"><label>Time *</label><input type="time" class="finput" id="tr_time" value="19:00"></div>
+      </div>
+      <div class="fg"><label>Covers</label><input type="number" class="finput" id="tr_covers" value="2" min="1"></div>
+      <div class="fg"><label>Table Preference</label>
+        <select class="finput" id="tr_tableId">
+          <option value="">No preference</option>
+        </select>
+      </div>
+      <div class="fg"><label>Special Requests</label><input type="text" class="finput" id="tr_requests" placeholder="e.g. Birthday, window seat…"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="vbtn vbtn-ghost" onclick="FD.ui.closeModal('tableResModal')">Cancel</button>
+      <button class="vbtn vbtn-primary" onclick="FD.dining.reserveTable()">Confirm Reservation</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAINTENANCE REPORT -->
+<div class="modal-overlay" id="maintModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>🔧 Report Issue</h2><button class="modal-x" onclick="FD.ui.closeModal('maintModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>Room / Location</label>
+        <select class="finput" id="maint_room"></select>
+      </div>
+      <div class="fg"><label>Issue Type</label>
+        <select class="finput" id="maint_type">
+          <option value="electrical">Electrical</option>
+          <option value="plumbing">Plumbing</option>
+          <option value="hvac">HVAC / Air Conditioning</option>
+          <option value="furniture">Furniture</option>
+          <option value="appliance">Appliance</option>
+          <option value="structural">Structural</option>
+          <option value="pest">Pest</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="fg"><label>Priority</label>
+        <select class="finput" id="maint_priority">
+          <option value="critical">🔴 Critical — affects guest</option>
+          <option value="high">🟠 High — needs today</option>
+          <option value="normal" selected>🟡 Normal</option>
+          <option value="low">🟢 Low — routine</option>
+        </select>
+      </div>
+      <div class="fg"><label>Description *</label><textarea class="finput ftextarea" id="maint_desc" rows="3" placeholder="Describe the issue in detail…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="vbtn vbtn-ghost" onclick="FD.ui.closeModal('maintModal')">Cancel</button>
+      <button class="vbtn vbtn-primary" onclick="FD.maintenance.submit()">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROOM DETAIL / STATUS CHANGE -->
+<div class="modal-overlay" id="roomDetailModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2 id="roomDetailTitle">Room Detail</h2><button class="modal-x" onclick="FD.ui.closeModal('roomDetailModal')">✕</button></div>
+    <div class="modal-body" id="roomDetailBody"></div>
+    <div class="modal-foot" id="roomDetailFoot"></div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS PANEL -->
+<div class="modal-overlay" id="notifModal">
+  <div class="modal-box" style="width:min(420px,96vw);margin-left:auto;margin-right:16px;align-self:flex-start;margin-top:70px">
+    <div class="modal-head"><h2>🔔 Notifications</h2><button class="modal-x" onclick="FD.ui.closeModal('notifModal')">✕</button></div>
+    <div class="modal-body" id="notifBody"></div>
+  </div>
+</div>
+
+<!-- SEARCH RESULTS OVERLAY -->
+<div class="search-overlay" id="searchOverlay" style="display:none">
+  <div class="search-results-panel" id="searchResults"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- SUCCESS FLASH -->
+<div class="success-flash" id="successFlash">
+  <div class="sf-icon" id="sfIcon">✅</div>
+  <div class="sf-title" id="sfTitle"></div>
+  <div class="sf-sub"   id="sfSub"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="frontdesk.js"></script>
+</body>
+</html>
