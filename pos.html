@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QuantumServe — Point of Sale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="pos.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SHIFT BAR
+═══════════════════════════════════════════════════════════ -->
+<div class="shift-bar" id="shiftBar">
+  <div class="sb-left">
+    <div class="shift-status-dot" id="shiftDot"></div>
+    <span class="sb-chip"><span class="sb-lbl">Shift</span><span class="sb-val" id="sbTimer">—</span></span>
+    <span class="sb-sep">·</span>
+    <span class="sb-chip"><span class="sb-lbl">Staff</span><span class="sb-val" id="sbStaff">—</span></span>
+    <span class="sb-sep">·</span>
+    <span class="sb-chip"><span class="sb-lbl">Property</span><span class="sb-val" id="sbProperty">—</span></span>
+    <span class="sb-sep">·</span>
+    <span class="sb-chip shift-chip-alert" id="sbShiftAlert" style="display:none">⚠ No Active Shift</span>
+  </div>
+  <div class="sb-right">
+    <div class="sb-stat" id="sbDrawer"><span class="sb-lbl">Drawer</span><span class="sb-val gold" id="drawerTotal">—</span></div>
+    <div class="sb-stat"><span class="sb-lbl">Orders</span><span class="sb-val teal" id="sbOrderCount">0</span></div>
+    <div class="sb-stat"><span class="sb-lbl">Covers</span><span class="sb-val" id="sbCovers">0</span></div>
+    <span class="sb-clock" id="sbClock"></span>
+    <button class="sb-btn" onclick="POS.ui.openKbdPanel()">? Keys</button>
+    <button class="sb-btn" onclick="POS.ui.openHistory()">⏱ History</button>
+    <button class="sb-btn sb-btn-danger" onclick="POS.shift.endShift()">⏏ End Shift</button>
+    <button class="sb-btn sb-btn-logout" onclick="QS.logout()">Sign Out</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════════════ -->
+<header class="pos-header">
+  <div class="hdr-brand">
+    <div class="brand-icon">🏨</div>
+    <div>
+      <div class="brand-name">Quantum<span>Serve</span></div>
+      <div class="brand-sub">Point of Sale</div>
+    </div>
+  </div>
+
+  <!-- Table / Room selector -->
+  <div class="hdr-section">
+    <button class="selector-btn" id="tableBtn" onclick="POS.ui.openTablePicker()">
+      <span class="sel-icon">🪑</span>
+      <div class="sel-body">
+        <div class="sel-lbl">Table / Location</div>
+        <div class="sel-val" id="tableBtnLabel">Select table…</div>
+      </div>
+      <span class="sel-caret">▾</span>
+    </button>
+
+    <!-- Order type -->
+    <div class="order-type-group" id="orderTypeGroup">
+      <button class="ot-btn active" data-type="dine_in"     onclick="POS.order.setType(this)">Dine In</button>
+      <button class="ot-btn"        data-type="bar"         onclick="POS.order.setType(this)">Bar</button>
+      <button class="ot-btn"        data-type="room_service" onclick="POS.order.setType(this)">Room Svc</button>
+      <button class="ot-btn"        data-type="takeaway"    onclick="POS.order.setType(this)">Takeaway</button>
+    </div>
+
+    <!-- Waiter -->
+    <button class="selector-btn selector-btn-sm" id="waiterBtn" onclick="POS.ui.openWaiterPicker()">
+      <div class="waiter-avatar" id="waiterAvatar">—</div>
+      <div class="sel-body">
+        <div class="sel-lbl">Server</div>
+        <div class="sel-val" id="waiterBtnLabel">Select…</div>
+      </div>
+      <span class="sel-caret">▾</span>
+    </button>
+
+    <!-- Covers -->
+    <div class="covers-ctrl">
+      <span class="sel-lbl">Covers</span>
+      <div class="qty-row">
+        <button class="qty-btn" onclick="POS.order.changeCovers(-1)">−</button>
+        <span class="qty-val" id="coversDisplay">1</span>
+        <button class="qty-btn" onclick="POS.order.changeCovers(1)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="hdr-search">
+    <span class="search-ico">⌕</span>
+    <input type="text" id="searchInput" placeholder="Search menu…  /" autocomplete="off"
+           oninput="POS.menu.search(this.value)"
+           onfocus="POS.menu.search(this.value)">
+    <span class="search-clear" id="searchClear" onclick="POS.menu.clearSearch()" style="display:none">✕</span>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN BODY
+═══════════════════════════════════════════════════════════ -->
+<div class="pos-body">
+
+  <!-- CATEGORY RAIL -->
+  <nav class="cat-rail" id="catRail"></nav>
+
+  <!-- MENU PANEL -->
+  <main class="menu-panel">
+    <div class="menu-panel-top" id="menuPanelTop">
+      <div>
+        <div class="menu-heading" id="menuHeading">All Items</div>
+        <div class="menu-sub" id="menuSub"></div>
+      </div>
+      <div class="quick-label">★ Quick Add</div>
+    </div>
+    <div class="menu-scroll">
+      <div class="pinned-strip" id="pinnedStrip"></div>
+      <div class="menu-grid" id="menuGrid"></div>
+    </div>
+  </main>
+
+  <!-- ORDER PANEL -->
+  <aside class="order-panel">
+
+    <!-- Order header -->
+    <div class="op-head">
+      <div>
+        <div class="op-title">Current Order</div>
+        <div class="op-num" id="opOrderNum">New Order</div>
+      </div>
+      <div class="op-actions">
+        <button class="op-ico-btn" title="Order note"        onclick="POS.ui.openOrderNote()">📝</button>
+        <button class="op-ico-btn" title="Course sequence"   onclick="POS.ui.openCourseModal()">🍽</button>
+        <button class="op-ico-btn" title="Receipt preview"   onclick="POS.ui.openReceiptPreview()">🧾</button>
+        <button class="op-ico-btn danger" title="Clear order" onclick="POS.order.clear()">✕</button>
+      </div>
+    </div>
+
+    <!-- Items -->
+    <div class="op-items" id="opItems">
+      <div class="op-empty" id="opEmpty">
+        <div class="op-empty-ico">🍽️</div>
+        <div class="op-empty-title">Order is empty</div>
+        <div class="op-empty-hint">Tap menu items to add</div>
+      </div>
+    </div>
+
+    <!-- Totals -->
+    <div class="op-totals" id="opTotals" style="display:none">
+      <div class="tot-row"><span>Subtotal</span><span class="mono" id="totSubtotal">—</span></div>
+      <div class="tot-row" id="totDiscRow" style="display:none">
+        <span class="teal">Discount <span id="totDiscPct"></span></span>
+        <span class="mono teal" id="totDisc">—</span>
+        <button class="disc-x" onclick="POS.order.removeDiscount()">✕</button>
+      </div>
+      <div class="tot-row"><span>Service Charge <span id="scPctLbl"></span></span><span class="mono" id="totSC">—</span></div>
+      <div class="tot-row"><span>VAT <span id="vatPctLbl"></span></span><span class="mono" id="totVAT">—</span></div>
+      <div class="tot-row tot-grand">
+        <span>TOTAL</span>
+        <span class="mono gold big" id="totGrand">—</span>
+      </div>
+    </div>
+
+    <!-- Footer actions -->
+    <div class="op-footer">
+      <div class="op-footer-row">
+        <button class="act-btn btn-kitchen"  onclick="POS.kitchen.fire()">👨‍🍳 Kitchen</button>
+        <button class="act-btn btn-discount" onclick="POS.ui.openDiscount()">% Discount</button>
+      </div>
+      <div class="op-footer-row">
+        <button class="act-btn btn-split"    onclick="POS.ui.openSplit()">⇌ Split Bill</button>
+        <button class="act-btn btn-void"     onclick="POS.ui.openVoid()">⊘ Void</button>
+      </div>
+      <button class="act-btn btn-pay" id="payBtn" onclick="POS.ui.openPayment()" disabled>
+        💳 Charge Payment
+      </button>
+    </div>
+  </aside>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════════════════ -->
+
+<!-- TABLE PICKER -->
+<div class="modal-overlay" id="tableModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head"><h2>🪑 Select Table</h2><button class="modal-x" onclick="POS.ui.closeModal('tableModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="table-area-tabs" id="tableAreaTabs"></div>
+      <div class="table-legend">
+        <span class="leg-item teal-dot">Free</span>
+        <span class="leg-item gold-dot">Occupied</span>
+        <span class="leg-item grey-dot">Dirty / Maintenance</span>
+      </div>
+      <div class="table-grid" id="tablePickerGrid"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="act-btn btn-split" onclick="POS.table.clearSelection()">No Table</button>
+      <button class="act-btn btn-pay"   onclick="POS.table.confirmSelection()">Confirm ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- WAITER PICKER -->
+<div class="modal-overlay" id="waiterModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>👤 Select Server</h2><button class="modal-x" onclick="POS.ui.closeModal('waiterModal')">✕</button></div>
+    <div class="modal-body" id="waiterList"></div>
+  </div>
+</div>
+
+<!-- PAYMENT -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal-box modal-pay">
+    <div class="modal-head">
+      <h2>💳 Process Payment</h2>
+      <button class="modal-x" onclick="POS.ui.closeModal('paymentModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Amount display -->
+      <div class="pay-amount-wrap">
+        <div class="pay-lbl">Amount Due</div>
+        <div class="pay-amount"><span class="pay-curr" id="payCurr">UGX</span><span id="payAmtDisplay">0</span></div>
+        <div class="pay-order-ref" id="payOrderRef"></div>
+      </div>
+
+      <!-- Payment methods -->
+      <div class="pay-methods" id="payMethods">
+        <div class="pay-method active" data-method="cash"         onclick="POS.payment.selectMethod(this)"><div class="pm-ico">💵</div><div class="pm-lbl">Cash</div></div>
+        <div class="pay-method"        data-method="card"         onclick="POS.payment.selectMethod(this)"><div class="pm-ico">💳</div><div class="pm-lbl">Card / POS</div></div>
+        <div class="pay-method"        data-method="mobile_money" onclick="POS.payment.selectMethod(this)"><div class="pm-ico">📱</div><div class="pm-lbl">Mobile Money</div></div>
+        <div class="pay-method"        data-method="room_charge"  onclick="POS.payment.selectMethod(this)"><div class="pm-ico">🏨</div><div class="pm-lbl">Room Charge</div></div>
+        <div class="pay-method"        data-method="city_ledger"  onclick="POS.payment.selectMethod(this)"><div class="pm-ico">🏢</div><div class="pm-lbl">City Ledger</div></div>
+        <div class="pay-method"        data-method="complimentary" onclick="POS.payment.selectMethod(this)"><div class="pm-ico">🎁</div><div class="pm-lbl">Comp</div></div>
+      </div>
+
+      <!-- Cash calculator -->
+      <div id="cashSection">
+        <div class="field-lbl">Cash Received</div>
+        <input type="number" class="cash-input" id="cashReceived" placeholder="0" min="0"
+               oninput="POS.payment.calcChange()">
+        <div class="quick-cash-row" id="quickCashRow"></div>
+        <div class="change-box" id="changeBox" style="display:none">
+          <span class="change-lbl" id="changeLbl">Change to Give</span>
+          <span class="change-amt mono" id="changeAmt"></span>
+        </div>
+      </div>
+
+      <!-- Room charge lookup -->
+      <div id="roomChargeSection" style="display:none">
+        <div class="field-lbl">Room / Guest</div>
+        <input type="text" class="form-input" id="roomSearch" placeholder="Room number or guest name…"
+               oninput="POS.payment.searchRoom(this.value)">
+        <div class="room-results" id="roomResults"></div>
+        <div class="selected-room" id="selectedRoom" style="display:none"></div>
+      </div>
+
+      <!-- City ledger lookup -->
+      <div id="cityLedgerSection" style="display:none">
+        <div class="field-lbl">Corporate Account</div>
+        <input type="text" class="form-input" id="ledgerSearch" placeholder="Company name or account code…"
+               oninput="POS.payment.searchLedger(this.value)">
+        <div class="room-results" id="ledgerResults"></div>
+        <div class="selected-room" id="selectedLedger" style="display:none"></div>
+      </div>
+
+      <!-- Reference / Auth code -->
+      <div id="referenceSection" style="display:none">
+        <div class="field-lbl" id="referenceLbl">Reference / Auth Code</div>
+        <input type="text" class="form-input" id="paymentRef" placeholder="e.g. Card auth code, MoMo ref…">
+      </div>
+
+      <!-- Comp: requires manager name -->
+      <div id="compSection" style="display:none">
+        <div class="field-lbl">Authorising Manager</div>
+        <input type="text" class="form-input" id="compManager" placeholder="Manager name…">
+        <div class="comp-warning">Complimentary bills are logged and require manager authorisation.</div>
+      </div>
+
+      <button class="btn-confirm-pay" id="confirmPayBtn" onclick="POS.payment.confirm()" disabled>
+        ✓ Confirm Payment
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SPLIT BILL -->
+<div class="modal-overlay" id="splitModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head"><h2>⇌ Split Bill</h2><button class="modal-x" onclick="POS.ui.closeModal('splitModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="split-mode-tabs">
+        <button class="split-tab active" data-mode="equal"  onclick="POS.split.setMode(this)">Equal Split</button>
+        <button class="split-tab"        data-mode="byItem" onclick="POS.split.setMode(this)">By Item</button>
+        <button class="split-tab"        data-mode="custom" onclick="POS.split.setMode(this)">Custom Amounts</button>
+      </div>
+      <div id="splitBody"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="act-btn btn-split" onclick="POS.ui.closeModal('splitModal')">Cancel</button>
+      <button class="act-btn btn-pay"   onclick="POS.split.proceed()">Process Splits →</button>
+    </div>
+  </div>
+</div>
+
+<!-- DISCOUNT -->
+<div class="modal-overlay" id="discountModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>% Apply Discount</h2><button class="modal-x" onclick="POS.ui.closeModal('discountModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="disc-presets" id="discPresets">
+        <button class="disc-preset" onclick="POS.discount.select(5)">5%</button>
+        <button class="disc-preset" onclick="POS.discount.select(10)">10%</button>
+        <button class="disc-preset" onclick="POS.discount.select(15)">15%</button>
+        <button class="disc-preset" onclick="POS.discount.select(20)">20%</button>
+        <button class="disc-preset" onclick="POS.discount.select(25)">25%</button>
+        <button class="disc-preset" onclick="POS.discount.select(50)">50%</button>
+        <button class="disc-preset" onclick="POS.discount.select(100)">100%</button>
+      </div>
+      <div class="field-lbl">Custom %</div>
+      <input type="number" class="cash-input" id="discInput" placeholder="Enter %" min="0" max="100"
+             oninput="POS.discount.preview()">
+      <div class="disc-preview" id="discPreview" style="display:none">
+        <div class="tot-row"><span>Discount Amount</span><span class="mono teal" id="discPrevAmt">—</span></div>
+        <div class="tot-row"><span>New Total</span><span class="mono" id="discPrevTotal">—</span></div>
+      </div>
+      <div class="ceiling-warn" id="ceilingWarn" style="display:none">
+        ⚠️ <span id="ceilingWarnMsg"></span>
+      </div>
+      <div class="field-lbl" style="margin-top:12px">Reason <span class="required">*</span></div>
+      <input type="text" class="form-input" id="discReason" placeholder="e.g. Loyalty guest, complaint resolution…">
+    </div>
+    <div class="modal-foot">
+      <button class="act-btn btn-split"    onclick="POS.ui.closeModal('discountModal')">Cancel</button>
+      <button class="act-btn btn-discount" onclick="POS.discount.apply()">Apply Discount</button>
+    </div>
+  </div>
+</div>
+
+<!-- VOID -->
+<div class="modal-overlay" id="voidModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>⊘ Void Request</h2><button class="modal-x" onclick="POS.ui.closeModal('voidModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="void-warning">Voiding requires manager approval. A notification is sent immediately.</div>
+      <div class="field-lbl">Scope</div>
+      <select class="form-select" id="voidScope">
+        <option value="full_order">Entire Order</option>
+        <option value="line_item">Specific Item</option>
+      </select>
+      <div id="voidItemSelect" style="display:none;margin-top:8px">
+        <div class="field-lbl">Select Item to Void</div>
+        <select class="form-select" id="voidItemId"></select>
+      </div>
+      <div class="field-lbl" style="margin-top:12px">Category <span class="required">*</span></div>
+      <select class="form-select" id="voidCategory">
+        <option value="">Select…</option>
+        <option value="wrong_item">Wrong item ordered</option>
+        <option value="guest_complaint">Guest complaint</option>
+        <option value="kitchen_error">Kitchen error</option>
+        <option value="pricing_error">Pricing error</option>
+        <option value="duplicate">Duplicate order</option>
+        <option value="manager_decision">Manager decision</option>
+        <option value="other">Other</option>
+      </select>
+      <div class="field-lbl" style="margin-top:12px">Details <span class="required">*</span></div>
+      <textarea class="form-textarea" id="voidReason" placeholder="Explain the reason…" rows="3"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="act-btn btn-split" onclick="POS.ui.closeModal('voidModal')">Cancel</button>
+      <button class="act-btn btn-void"  onclick="POS.void.submit()">Request Void →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM NOTE -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>📝 Item Note</h2><button class="modal-x" onclick="POS.ui.closeModal('noteModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="note-presets" id="notePresets">
+        <button onclick="POS.note.add('No salt')">No salt</button>
+        <button onclick="POS.note.add('Well done')">Well done</button>
+        <button onclick="POS.note.add('Medium rare')">Medium rare</button>
+        <button onclick="POS.note.add('No onions')">No onions</button>
+        <button onclick="POS.note.add('Extra sauce')">Extra sauce</button>
+        <button onclick="POS.note.add('No garlic')">No garlic</button>
+        <button onclick="POS.note.add('Gluten free')">⚠ Gluten free</button>
+        <button onclick="POS.note.add('Nut allergy')">⚠ Nut allergy</button>
+        <button onclick="POS.note.add('Dairy free')">⚠ Dairy free</button>
+        <button onclick="POS.note.add('VIP guest')">⭐ VIP guest</button>
+      </div>
+      <textarea class="form-textarea" id="noteInput" placeholder="Special instructions…" rows="4"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="act-btn btn-split" onclick="POS.ui.closeModal('noteModal')">Cancel</button>
+      <button class="act-btn btn-pay"   onclick="POS.note.save()">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<!-- COURSE SEQUENCE -->
+<div class="modal-overlay" id="courseModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>🍽 Course Sequence</h2><button class="modal-x" onclick="POS.ui.closeModal('courseModal')">✕</button></div>
+    <div class="modal-body">
+      <p class="modal-hint">Assign courses to control kitchen firing order. Kitchen fires each course when the previous is served.</p>
+      <div id="courseList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="act-btn btn-split" onclick="POS.ui.closeModal('courseModal')">Cancel</button>
+      <button class="act-btn btn-pay"   onclick="POS.course.save()">Save Courses</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER NOTE -->
+<div class="modal-overlay" id="orderNoteModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>📝 Order Note</h2><button class="modal-x" onclick="POS.ui.closeModal('orderNoteModal')">✕</button></div>
+    <div class="modal-body">
+      <textarea class="form-textarea" id="orderNoteInput" placeholder="General note for this order / kitchen…" rows="4"></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="act-btn btn-split" onclick="POS.ui.closeModal('orderNoteModal')">Cancel</button>
+      <button class="act-btn btn-pay"   onclick="POS.order.saveNote()">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIPT PREVIEW -->
+<div class="modal-overlay" id="receiptModal">
+  <div class="modal-box">
+    <div class="modal-head"><h2>🧾 Receipt Preview</h2><button class="modal-x" onclick="POS.ui.closeModal('receiptModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="receipt-wrap" id="receiptContent"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="act-btn btn-split" onclick="POS.ui.closeModal('receiptModal')">Close</button>
+      <button class="act-btn btn-pay"   onclick="POS.receipt.print()">🖨 Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head"><h2>⏱ Order History</h2><button class="modal-x" onclick="POS.ui.closeModal('historyModal')">✕</button></div>
+    <div class="modal-body" id="historyBody"></div>
+  </div>
+</div>
+
+<!-- END SHIFT -->
+<div class="modal-overlay" id="shiftEndModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head"><h2>⏏ End of Shift</h2><button class="modal-x" onclick="POS.ui.closeModal('shiftEndModal')">✕</button></div>
+    <div class="modal-body" id="shiftEndBody"></div>
+    <div class="modal-foot">
+      <button class="act-btn btn-split" onclick="POS.ui.closeModal('shiftEndModal')">Cancel</button>
+      <button class="act-btn btn-pay"   id="confirmShiftEnd" onclick="POS.shift.confirmEnd()">Close Shift →</button>
+    </div>
+  </div>
+</div>
+
+<!-- KEYBOARD SHORTCUTS -->
+<div class="kbd-panel" id="kbdPanel">
+  <div class="kbd-title">Keyboard Shortcuts</div>
+  <div class="kbd-grid">
+    <div class="kbd-item"><kbd>/</kbd><span>Search menu</span></div>
+    <div class="kbd-item"><kbd>F1</kbd><span>New order</span></div>
+    <div class="kbd-item"><kbd>F2</kbd><span>Pay now</span></div>
+    <div class="kbd-item"><kbd>F3</kbd><span>Send to kitchen</span></div>
+    <div class="kbd-item"><kbd>F4</kbd><span>Discount</span></div>
+    <div class="kbd-item"><kbd>F5</kbd><span>Split bill</span></div>
+    <div class="kbd-item"><kbd>T</kbd><span>Table picker</span></div>
+    <div class="kbd-item"><kbd>H</kbd><span>History</span></div>
+    <div class="kbd-item"><kbd>Esc</kbd><span>Close / Cancel</span></div>
+    <div class="kbd-item"><kbd>?</kbd><span>This panel</span></div>
+  </div>
+</div>
+
+<!-- SUCCESS FLASH -->
+<div class="success-flash" id="successFlash">
+  <div class="sf-icon" id="sfIcon">✅</div>
+  <div class="sf-title" id="sfTitle">Payment Received!</div>
+  <div class="sf-sub"   id="sfSub"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="pos.js"></script>
+</body>
+</html>
